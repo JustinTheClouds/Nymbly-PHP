@@ -1,5 +1,5 @@
 {
-    "version": "0.0.29",
+    "version": "0.0.30",
     "check": "https:\/\/raw.githubusercontent.com\/JustinTheClouds\/Nymbly-PHP\/master\/version.json",
     "download": "https:\/\/github.com\/JustinTheClouds\/Nymbly-PHP\/archive\/master.zip",
     "updated": "12\/10\/2014"
