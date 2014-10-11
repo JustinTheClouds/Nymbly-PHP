@@ -1,0 +1,71 @@
+<?php
+/**
+ * This is the main template file that will be loaded for every
+ * page request. You may create as many of these template files as
+ * you like and can choose what template is loaded at run time using
+ * View::setTemplate('index2.html') or by using the onViewGetTemplate hook.
+ *
+ * There is currently only 3 protected global varialbes that are written
+ * by the framework itself. NYM_HEAD, NYM_CONTENT, NYM_FOOTER_SCRIPTS. None
+ * of these are required for for a page to run. You can create a template
+ * that uses only HTML and it will display as is.
+ *
+ * Another thing to note is that since these are included at run time, you may
+ * place php code with them as you please.
+ */ ?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <?php
+    /**
+     * Outputs all header content including styles and scripts.
+     * Use the onViewGetHead filter to add other content from within
+     * plugins or controllers. Or if it's something you know you want
+     * included on every page, then you can either use the onViewGetHead hook
+     * from the Main class or just type it here manually like you would for
+     * normal HTML page.
+     */ ?>
+	<?= $NYM_HEAD ?>
+</head>
+<body>
+    
+    <header>
+        
+        <?php
+        /**
+         * All global scope assigned variables (variables assigned using
+         * View::assign($var, $val) with the 3rd $namespace param missing)
+         * will be transformed into all caps variables. This makes it easier
+         * from within your view to determine what variables are defined where.
+         * Ex. appName is defined in the Main class with View::assign('appName', 'Nymbly PHP');
+         * Since it is global, to use it within the template, use $APPNAME
+         */ ?>
+        <h1><?= $APPNAME ?></h1>
+        
+    </header>
+    
+    <?php
+    /**
+     * The $CONTENT global variable contains the main content of the current
+     * controller being loaded. If this is the demo/installation page. Then
+     * the content loaded here will be from the themes/default/demo/demo-installation.html
+     * file. This content may be altered during runtime through hooks from
+     * plugins or the controller itself.
+     */ ?>
+	<?= $NYM_CONTENT ?>
+    
+    <footer>
+        &copy; Copyright <?= $APPNAME ?> <?php echo date('Y'); ?>
+    </footer>
+	
+    <?php
+    /**
+     * Some apps or specific pages may need to load scripts into the
+     * footer instead of the head. You can use the onViewGetFooterScripts
+     * hook to add these. They will all be output using the
+     * $FOOTER_SCRIPTS var.
+     */ ?>
+    <?= $NYM_FOOTER ?>
+</body>
+</html>

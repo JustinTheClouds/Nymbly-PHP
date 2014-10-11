@@ -1,0 +1,21 @@
+<h3>Download Nymbly PHP</h3>
+<form method="post">
+    <label for="app-name">Name of your app:</label>
+    <input type="text" id="app-name" name="app-name" placeholder="My Project" />
+    <label for="local-path">Localhost folder path: (ex. localhost/MyProject)</label>
+    <p>You would enter MyProject in the field below. This config will allows search engine friendly urls to work locally and on your prodcution server using a single .htaccess file.</p>
+    <p>Leave blank if you plan on working on this project at the localhost root.</p>
+    <input type="text" id="local-path" name="local_path" placeholder="MyProject" />
+    <label for="default-lang">Default language you will programming in:</label>
+    <select id="default-lang" name="lang">
+    <?php
+        foreach($langs as $lang) {
+            echo '<option value="' . $lang . '">' . $lang . '</option>';
+        }
+    ?>
+    </select>
+    <h4>Plugins to be packaged with</h4>
+    <input type="checkbox" id="plugins-admin-bar" name="plugins[admin_bar]" value="admin_bar" checked />
+    <label for="plugins-admin-bar">Admin Bar (recommended)</label>
+    <input type="submit" value="Download" />
+</form>

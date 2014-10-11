@@ -1,0 +1,45 @@
+<h3>{"Templating"}</h3>
+<p>Nymbly comes with a very minimal templating system in place. It supports only 5 template patterns.</p>
+
+<h4>Variables</h4>
+<p>Easily output any assigned variables inside of your template files.</p>
+<h5>Assigning variables</h5>
+<p>From within your controller call</p>
+<code>$this->assign('somevarname', 'some value');</code>
+<p>To use the variable in a teamplate file</p>
+<code>{$somevarname}</code>
+
+<h4>Translations</h4>
+<p>The translation pattern allowed you to easily write out text that will be checked for translations automatically.</p>
+
+<h5>Examples</h5>
+<code>{'Just write the text you want within quotes'}</code>
+<code>{"Double quotes work the same"}</code>
+<code>{"But what if text requires a ' inside of it?"}</code>
+<code>{'Then use the opposite ".'}</code>
+<code>{'What if it needs both ' and  "?'}</code>
+
+<h4>Links</h4>
+<p>The link pattern is useful because it will automatically append the baseurl infront of the link. The helps when working locally. The link pattern must begin with a / and be used without quotes or else it will be treated as a tranlation.</p>
+<code>{/demo/templating}</code>
+<p>will return {/demo/templating}</p>
+
+<h4>Controllers</h4>
+<p>The controller pattern is the most powerful. This will allow you to embed other controllers directly into views.</p>
+<p>The syntax is</p>
+<code>{option.task.action}</code>
+<p>For example</p>
+<code>{demo.layouts.nav}</code>
+<p>Will try to load the controllers of demo/layouts/nav. If they exist, the view will be outputted in place. They make templating of reusable views very powerful.</p>
+<p>The task and action can be ommitted as well and are not required.</p>
+<code>{demo}</code>
+<p>Example, embedding the demo nav bar</p>
+<code>{demo.layout.nav}</code>
+<p>Result:</p>
+{demo.layouts.nav}
+
+<h4>Ignores</h4>
+{'What if I want to output the text "<strong>{{'This is how to use translationss'}}</strong>"?'}
+<code>{{"This is how to use translations"}}</code>
+<p>{'Or'}</p>
+<code>&lt;code&gt;{{"This is how to use translations"}}&lt;/code&gt;</code>

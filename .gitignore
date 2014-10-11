@@ -1,0 +1,5 @@
+application/plugins
+.git-php-hooks/
+tmp
+backups
+updates

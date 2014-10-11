@@ -1,0 +1,24 @@
+# Activation of the URL Rewriting
+Options +FollowSymlinks
+RewriteEngine On
+
+# RewriteBase equivalent - Production
+RewriteCond %{HTTP_HOST} !^localhost$
+RewriteRule . - [E=REWRITEBASE:/]
+
+# RewriteBase equivalent - Development
+RewriteCond %{HTTP_HOST} ^localhost$
+RewriteRule . - [E=REWRITEBASE:/NymblyPHP/]
+
+# If the requested path and file is not /index.php
+RewriteCond %{REQUEST_URI} !^/index\.php 
+
+# The requested path and file doesn't directly match a physical file
+RewriteCond %{REQUEST_FILENAME} !-f [OR]
+RewriteCond %{REQUEST_FILENAME} \.(html|php)$
+
+# The requested path and file doesn't directly match a physical folder
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Rewriting
+RewriteRule ^(.*)$ %{REWRITEBASE}index.php [L]
