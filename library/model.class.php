@@ -45,13 +45,12 @@ class Model {
         }
         // Set defaults properties
         $this->_setDefaultProperties();
-        /**
-         * Run initialization method
-         * 
-         * Your model can use this method to set data automatically
-         * on every instance of your model. This can save on repetitive tasks.
-         */
-        $this->_runMethod('initialize');
+    }
+    
+    protected static function _() {
+        $args = func_get_args();
+        array_unshift($args, 'models.' . SEF::getOption());
+        return call_user_func_array(array('App', '_'), $args);
     }
     
     /**
@@ -72,7 +71,24 @@ class Model {
         if($params) {
             $model->load($params);
         }
+        /**
+         * Run initialization method
+         * 
+         * Your model can use this method to set data automatically
+         * on every instance of your model. This can save on repetitive tasks.
+         */
+        $model->_runMethod('initialize');
         // Return object
+        return $model;
+    }
+    
+    // TODO turn into filter for parse. Parse code should not be here
+    public function getModel($column, $table) {
+        if(is_a($this->$column, 'Model_' . $table, true)) return $this->$column;
+        $model = Model::getInstance($table);
+        if(!$this->$column->isDataAvailable()) $this->$column->fetch();
+        $model->fill($this->$column->getAll());
+        $model->id = $this->$column->getObjectId();
         return $model;
     }
     
@@ -87,7 +103,11 @@ class Model {
      * Sets the current rows columns value to $val
      */
     public function __set($column, $val) {
-        if(in_array($column, $this->_properties) || array_key_exists($column, $this->_properties)) $this->_values[$column] = $val;
+        if(in_array($column, $this->_properties) || array_key_exists($column, $this->_properties)) {
+            $this->_values[$column] = $val;
+        } else {
+            $this->$column = $val;
+        }
     }
     
     public function __unset($key) {
@@ -124,7 +144,6 @@ class Model {
              */
             $this->_runMethod('beforeCreate');
         }
-        
         /**
          * Run the validate method
          * 
@@ -135,7 +154,7 @@ class Model {
         
         // Return if errors are present
         if(count($this->_errors)) return;
-        
+
         // Run save
         Plugins::action('onModelSave', $this, $this->id);
         
@@ -180,13 +199,6 @@ class Model {
         foreach($data as $k => $v) {
             $this->$k = $v;
         }
-    }
-    
-    function clear() {
-
-        // Fill current model with empty raw properties
-        $this->_setDefaultProperties($this->_getRawProperties());
-        
         /**
          * Run initialization method
          * 
@@ -196,15 +208,22 @@ class Model {
         $this->_runMethod('initialize');
     }
     
+    function clear() {
+
+        // Fill current model with empty raw properties
+        $this->_setDefaultProperties($this->_getRawProperties());
+        
+    }
+    
     function beforeSave() {}
     function afterSave() {}
     
     /**
      * The query method queries the table and returns the results as an array of model objects
      */
-    static function query($model, $params=null) {
+    static function query($model, $params=null, $opts=null) {
         $model = Model::getInstance($model);
-        $results = Plugins::filter('onModelQuery', $model, $params);
+        $results = Plugins::filter('onModelQuery', $model, $params, $opts);
         if(!$results) {
             return array();
         } else {
@@ -228,7 +247,7 @@ class Model {
     }
     
     public function hasValue($prop) {
-        return isset($this->_values[$prop]);
+        return array_key_exists($prop, $this->_values);
     }
     
     /**
@@ -271,6 +290,23 @@ class Model {
     }
     
     /**
+     * Returns specific error, first error, or false if no errors
+     * 
+     * @param String [$id=null] The index of the error to try to return
+     */
+    public function getError($id=null) {
+        if($id) {
+            if(isset($this->_errors[$id])) {
+                return $this->_errors[$id];
+            } 
+            return false;
+        } elseif(count($this->_errors)) {
+            return reset($this->_errors);
+        }
+        return false;
+    }
+    
+    /**
      * Returns the array of errors or false if no errors caught
      */
     public function getErrors() {
@@ -284,8 +320,12 @@ class Model {
     /**
      * Adds an error message to the errors array
      */
-    public function addError($message) {
-        $this->_errors[] = $message;
+    public function addError($message, $id=null) {
+        if($id) {
+            $this->_errors[$id] = $message;
+        } else {
+            $this->_errors[] = $message;
+        }
     }
     
     /**

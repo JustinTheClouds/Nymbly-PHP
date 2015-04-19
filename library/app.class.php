@@ -8,13 +8,15 @@ class App {
 	 * App settings and sessions vars
 	 */
 	private static $registry = null;
+    
+    private static $currentMemoryUsage = null;
 	
 	public static function init() {
 
 		// Report all PHP errors
 		//error_reporting(-1);
 		// Default errors off always, they will be turned back on for develoeprs
-		//ini_set('display_errors', 0);
+        //ini_set('display_errors', 0);
 
 		// Initialize the core settings for all request types
 		defined('DS') ? null : define('DS', '/');// (\ for Windows) and (/ for unix)
@@ -24,6 +26,8 @@ class App {
 		defined('DIR_LIB') ? null : define('DIR_LIB', dirname(__FILE__));
 		// Define app directory, where all controllers are stored
 		defined('DIR_APP') ? null : define('DIR_APP', DIR_ROOT.DS.'application');
+        // Where all test files are held
+		defined('DIR_TESTS') ? null : define('DIR_TESTS', DIR_ROOT.DS.'tests');
 		// Define themes directory, where all controllers are stored
 		defined('DIR_THEMES') ? null : define('DIR_THEMES', DIR_ROOT.DS.'themes');
 		// Define models directory
@@ -68,12 +72,16 @@ class App {
 		defined('SITE_CUR_THEME') ? null : define('SITE_CUR_THEME', SITE_THEMES . DS . App::getTheme());
         
         // Run controllers
-        self::executeControllers();
+        if(SEF::isTestMode()) {
+            self::executeTestControllers();
+        } else {
+            self::executeControllers();
+        }
 
 		// Controllers have completed, load view
 		App::displayView();
 	}
-	
+
     /**
      * Determines is the application is in live more or not
      * 
@@ -334,6 +342,7 @@ class App {
         
         // Get the request method
         $method = strtolower($_SERVER['REQUEST_METHOD']);
+        if($method != 'get' && $method != 'post') $method = 'get';
         
         // If its an ajax or json request, overwrite default method
         if(self::get('get.ajax_request', 'request')) $method = 'ajax';
@@ -399,7 +408,7 @@ class App {
 	public static function _unset($path, $namespace='session') {
 		
         // Make sure there is something to unse
-        if(!App::get($path, $namespace)) return;
+        //if(!App::get($path, $namespace)) return;
         
 		$tPath = str_replace('.', '_', $path);
 		
@@ -445,6 +454,25 @@ class App {
 		setcookie(sha1($name . self::get('salt', 'application')), "", time() - 3600, '/auth/login');
 	}
     
+    private static function executeTestControllers() {
+        return;
+        $sections = SEF::getSections();
+        
+        require_once(DIR_TESTS.DS.'controllers'.DS.SEF::getOption().'.php');
+        if(isset($sections[0])) require_once(DIR_APP.DS.'controllers'.DS.SEF::getOption().DS.SEF::getOption().'.php');
+        if(isset($sections[1])) require_once(DIR_APP.DS.'controllers'.DS.SEF::getOption().DS.SEF::getOption().'-'.SEF::getTask().'.php');
+        
+        
+        $method ='';
+        foreach(SEF::getSections() as $section) {
+            $method .= ucfirst($section);
+        }
+        
+        // MarketBrowse
+        exit();
+        
+    }
+    
     public static function executeControllers() {
         
         $args = func_get_args();
@@ -470,7 +498,7 @@ class App {
 				App::executeActionMethod($taskController);
 				
 			}
-			
+            
             // Complete task controller
             if(method_exists($taskController, '_finish')) call_user_func(array($taskController, '_finish'));
             
@@ -493,13 +521,15 @@ class App {
 		
 		// Get option name
 		$name = SEF::getOption();
+        // Get option file name
+        $fileName = DIR_APP.DS.'controllers'.DS.$name.DS.$name.'.php';
 		
 		// Does controller exist
-		if(file_exists(DIR_APP.DS.'controllers'.DS.$name.DS.$name.'.php') ){
+		if(file_exists($fileName)){
 			
             $ret = null;
             
-			require_once(DIR_APP.DS.'controllers'.DS.$name.DS.$name.'.php');
+			require_once($fileName);
 			$class = str_replace('-', '_', "Option_$name");
 			$object = new $class();
 			
@@ -551,7 +581,8 @@ class App {
 		
 		if($name && method_exists($taskController, $name)) {
             
-            call_user_func(array($taskController, $name));
+            $args = array_slice(SEF::getSections(), 3);
+            call_user_func_array(array($taskController, $name), $args);
             
         }
 		
@@ -565,6 +596,18 @@ class App {
 		View::display();
 		
 	}
+    
+    public static function debugMemory($name=null) {
+        // Grab current memory
+        $currentMemory = memory_get_usage(true);
+        // Calc change in memory if previous mem exists
+        if(self::$currentMemoryUsage) {
+            $memoryChange = $currentMemory - self::$currentMemoryUsage;
+        }
+        // Update current memory
+        self::$currentMemoryUsage = $currentMemory;
+        App::debug('Memory Usage: ' . self::$currentMemoryUsage . (isset($memoryChange) ? '<br />Change of: ' . $memoryChange : ''), $name);
+    }
 	
 	/**
 	 * Debug data
@@ -585,7 +628,7 @@ class App {
 			$default = '<pre class="app-debug">' . print_r(array($name, print_r($var, true), $info[0]['line'], $info[0]['file']), true) . '</pre>';
 			
             // Only output the debug on page requests that have a template
-			if(!App::get('method', 'request') == 'JSON' && !App::get('method', 'request') == 'JSONP') {
+			if(App::get('method', 'request') != 'JSON' && App::get('method', 'request') != 'JSONP') {
                 echo(Plugins::filter('onAppDebug', $default, $var, $name, $info));
             // Nothing will be output by default
             // Requests without a template will run the debug through a filter so plugina can still tie in
@@ -613,6 +656,12 @@ class App {
     public static function redirect($route='', $queryStr='') {
         // Check if this is occuring during an active import
         if(View::$activeImport) return;
+        // Is this an external redirect?
+        if(substr($route, 0, 7) == "http://" || substr($route, 0, 8) == "https://") {
+            // Redirect
+            header("Location: " . $route);
+            exit();
+        }
         // If is array, build query string from array
         $queryStr = is_array($queryStr) ? http_build_query($queryStr) : $queryStr;
         // Add leading ? if not present and we have a queryStr
@@ -629,7 +678,12 @@ class App {
 	private static function autoLoader($class) {
 
 		$name = strtolower($class).'.class.php';
-		$default = $class.'.php';
+        
+        if(strstr($class, '\\', true)) {
+            $default = strstr($class, '\\', true) . '.php';
+        } else {
+            $default = $class.'.php';
+        }
 		
 		// Check core library first
 		if(is_file(DIR_LIB.DS.$name)) {

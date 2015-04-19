@@ -46,10 +46,11 @@ class Error extends Exception {
     public static function shutdownError() {
         $error = error_get_last();
         // Did we shutdown with a fatal error?
-        if($error) {
+        if(count($error)) {
             $args = array($error['type'], $error['message'], $error['file'], $error['line'], true);
             call_user_func_array(array('Error', 'handleError'), $args);
             self::$isFatalShutdown = true;
+            Main::$_errorTrace[] = array('setting fatal', $error, debug_backtrace());
         }
         self::displayErrors();
     }
@@ -144,6 +145,8 @@ class Error extends Exception {
     }
     
     public static function displayErrors() {
+        
+        if(App::get('method', 'request') != 'get' && App::get('method', 'request') != 'post') return;
         
         $errors = self::getErrors();
         

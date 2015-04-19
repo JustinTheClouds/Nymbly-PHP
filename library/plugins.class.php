@@ -27,6 +27,9 @@ class Plugins {
 		
 		// Do we have a plugins directory?
 		if(is_dir(DIR_PLUGINS)) {
+            
+            // Hold queued request specific method for plugins until all plugins are aloaded
+            $queuedRequestMethods = array();
 			
 			// Grab enabled plugins
 			$plugins = self::getEnabledPlugins();
@@ -61,12 +64,22 @@ class Plugins {
                         
                         // Run plugin request methods if set
                         if(isset($_REQUEST[$name . '_request']) && method_exists($className, '_' . App::get('method', 'request'))) {
-                            call_user_func(array($className, '_' . App::get('method', 'request')), App::get('plugins.' . $name, 'request.' . (App::get('method', 'request') == 'post' ? 'post' : 'get')));
+                            $queuedRequestMethods[] = array(
+                                'name' => $name,
+                                'className' => $className,
+                                'method' => '_' . App::get('method', 'request')
+                            );
                         }
                     }
 				}
 			}
 		}
+        
+        // Run plugin queued request methods if set
+        foreach($queuedRequestMethods as $queued) {
+            call_user_func(array($queued['className'], $queued['method']), App::get('plugins.' . $queued['name'], 'request.' . (App::get('method', 'request') == 'post' ? 'post' : 'get')));
+        }
+        
 		self::$initialized = true;
 	}
 
@@ -319,8 +332,8 @@ class Plugins {
             if($type == 'filter')
 				$args[0] = $returned = $ret;
         }
-        if(method_exists('Task_' . SEF::getTask(), $event)) {
-            $ret = call_user_func_array(array('Task_' . SEF::getTask(), $event), $args);
+        if(method_exists('Task_' . str_replace('-', '_', SEF::getTask()), $event)) {
+            $ret = call_user_func_array(array('Task_' . str_replace('-', '_', SEF::getTask()), $event), $args);
             //if($type == 'filter' && $ret !== NULL)
             if($type == 'filter')
 				$args[0] = $returned = $ret;

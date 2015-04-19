@@ -18,6 +18,7 @@ class View {
     private static $template = 'index.html';
 	private static $jsVars = array();
 	private static $vars = array();
+	private static $scripts = array();
 	private static $content = "";
     
     private static function _() {
@@ -172,7 +173,7 @@ class View {
         $vars = 'var ';
         $counter = 1;
         foreach(self::$vars['JS'] as $k => $v) {
-            $vars .= "$k = '$v'";
+            $vars .= "$k = '" . (is_array($v) ? json_encode($v) : $v) . "'";
             if($counter == count(self::$vars['JS'])) {
                 $vars .= ';';
             } else {
@@ -186,14 +187,12 @@ class View {
 	private static function getHeadScripts() {
 		$scripts = array();
 		
-		// Load core styles, main.css, and controller specific styles
-        $scripts[] = SITE_CUR_THEME . DS . 'js/scripts.js';
-		
 		// Allow plugins to alter the full list of scripts to be loaded and append.prepend any more
 		$scripts = Plugins::filter('onViewGetHeadScripts', $scripts);
 		
         // Remove dups
         $scripts = array_unique($scripts);
+        self::$scripts = $scripts;
         
 		if(is_array($scripts)) 
 			return array_map(create_function('$a', 'return \'<script type="text/javascript" src="\' . $a . \'"></script>\';'), $scripts);
@@ -214,10 +213,15 @@ class View {
 		
         $scripts = array();
         
+        $scripts[] = SITE_CUR_THEME . DS . 'js/scripts.js';
+        
         $scripts = Plugins::filter('onViewGetFooterScripts', $scripts);
 		
         // Remove dups
         $scripts = array_unique($scripts);
+        
+        // Remove any dups from head scripts
+        $scripts = array_diff($scripts, self::$scripts);
         
         if(is_array($scripts)) 
 			$ret = implode("", array_map(function($a) {
@@ -243,11 +247,12 @@ class View {
             // Extract global vars for every file
             extract(self::$vars['global']);
             // Extract controller vars if there are any
-            if(isset(self::$vars[SEF::getRoute()])) extract(self::$vars[SEF::getRoute()]);
+            $controllerPath = SEF::getOption() . '/' . SEF::getTask();
+            if(isset(self::$vars[$controllerPath])) extract(self::$vars[$controllerPath]);
             require $file;
             // Compact extracted vars
             compact(self::$vars['global']);
-            if(isset(self::$vars[SEF::getRoute()])) compact(self::$vars[SEF::getRoute()]);
+            if(isset(self::$vars[$controllerPath])) compact(self::$vars[$controllerPath]);
             // Get file into variable
             $template = ob_get_clean();
             // Run loaded file through filter
@@ -331,13 +336,17 @@ class View {
      * Get the image url for the current theme
      */
     public static function image($file) {
-        return SITE_CUR_THEME . '/images/' . $file;
+        if(App::isLive()) {
+            return SEF::getBaseURL() . '/' . SITE_CUR_THEME . '/images/' . $file;
+        } else {
+            return SITE_CUR_THEME . '/images/' . $file;
+        }
     }
     
     /**
      * Assign vars to the view
      */
-	public static function assign($var, $val=null, $namespace='global', $requestTypes=false) {
+	public static function assign($var, $val=null, $namespace='global', $requestTypes=array('get','post')) {
         if(is_array($var)) {
             // Assign each var
             foreach($var as $k => $v) {

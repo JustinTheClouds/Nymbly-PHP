@@ -16,7 +16,9 @@ defined('IN_APP') ? NULL : exit();
  */
 class SEF {
 
-	private static $option = null;
+	private static $isTestMode = false;
+	
+    private static $option = null;
 	private static $task = null;
 	private static $action = null;
 	
@@ -41,10 +43,21 @@ class SEF {
             // Check if we have a first section
             if(!empty(self::$sections[0]) && isset(self::$sections[0])) {
                 
-                // Check if a route is defined for this section
-                if($route = App::get('routes.' . self::$sections[0], 'configs')) {
-                    self::setRoute($route);
-                    return;
+                // Are we in test mode?
+                if(App::isDeveloper() && !App::isLive() && self::$sections[0] == 'TEST') {
+                    
+                    self::$isTestMode = true;
+                    array_shift(self::$sections);
+                
+                // Routes are ignored for test mode
+                } else {
+                
+                    // Check if a route is defined for this section
+                    if($route = App::get('routes.' . self::$sections[0], 'configs')) {
+                        self::setRoute($route);
+                        return;
+                    }
+                    
                 }
                 
                 // Set route
@@ -56,6 +69,10 @@ class SEF {
             self::setDefaultRoute();
 		}		
 	}
+    
+    public static function isTestMode() {
+        return App::isDeveloper() && !App::isLive() && self::$isTestMode;
+    }
     
     /**
      * Set the default controllers to run if none supplied
@@ -113,6 +130,13 @@ class SEF {
         if(isset($sections[2])) self::$action = $sections[2];
     }
     
+    public static function getSections($section=null) {
+        if($section) {
+            return isset(self::$sections[$section]) ? self::$sections[$section] : false;
+        }
+        return self::$sections;
+    }
+    
     public static function getRoute() {
         return self::$route;
     }
@@ -150,6 +174,15 @@ class SEF {
 		return false;
 		
 	}
+    
+    public static function getCurrentUrl() {
+        $s = empty($_SERVER["HTTPS"]) ? '' : ($_SERVER["HTTPS"] == "on") ? "s" : ""; 
+        $s1 = strtolower($_SERVER["SERVER_PROTOCOL"]);
+        $s2 = "/";
+        $protocol = substr($s1, 0, strpos($s1, $s2)) . $s; 
+        $port = ($_SERVER["SERVER_PORT"] == "80") ? "" : (":".$_SERVER["SERVER_PORT"]); 
+        return $protocol."://".$_SERVER['SERVER_NAME'].$port.$_SERVER['REQUEST_URI']; 
+    }
 
 	public static function getBaseUrl($withProtocol=true, $withHost=true) {
         
