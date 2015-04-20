@@ -530,7 +530,7 @@ class App {
             $ret = null;
             
 			require_once($fileName);
-			$class = str_replace('-', '_', "Option_$name");
+			$class = str_replace('-', '_', "Controller_$name");
 			$object = new $class();
 			
 			// Run defualt _execute method if exists
@@ -557,7 +557,7 @@ class App {
 			
             $ret = null;
 			require_once(DIR_APP.DS.'controllers'.DS.SEF::getOption().DS.SEF::getOption().'-'.$name.'.php');
-			$class = str_replace('-', '_', "Task_$name");
+			$class = str_replace('-', '_', "Controller_" . SEF::getOption() . "_$name");
 			$object = new $class();
 			
 			// Run defualt _execute method if exists
